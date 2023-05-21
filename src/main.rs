@@ -181,17 +181,13 @@ impl<const SIZE: usize> Memory<SIZE> {
 fn main() {
     let mut mem = Memory::<256>::new();
     let prog = vec![
-        Instr::Mov(0, 3),
+        Instr::Mov(0, 255),
+        Instr::Str(0, 255),
         Instr::Mov(1, 1),
-        Instr::And(0, 1, 0),
-        Instr::And(2, 0, 0),
-        Instr::Add(0, 1, 2),
-        Instr::Sub(1, 0, 0),
-        Instr::Sub(1, 1, 2),
-        Instr::Ldr(2, 255),
-        Instr::Add(2, 2, 2),
-        Instr::Str(2, 255),
-        Instr::Mov(3, 0),
+        Instr::Ldr(0, 255),
+        Instr::Sub(0, 0, 1),
+        Instr::Str(0, 255),
+        Instr::Mov(3, 6),
     ];
 
     mem.load_program(prog);
