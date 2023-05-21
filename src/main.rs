@@ -8,6 +8,7 @@ enum Instr {
     Mov(usize, u8),
     Add(usize, usize, usize),
     Sub(usize, usize, usize),
+    Ldr(usize, u8),
 }
 
 impl From<u16> for Instr {
@@ -38,6 +39,11 @@ impl From<u16> for Instr {
                 let rs2 = ((params >> 2) & 0b11) as usize;
                 let rd = ((params >> 4) & 0b11) as usize;
                 Instr::Sub(rd, rs1, rs2)
+            }
+            5 => {
+                let rd = ((params >> 8) & 0b11) as usize;
+                let addr = params as u8;
+                Instr::Ldr(rd, addr)
             }
             _ => panic!("Unknown opcode: {opcode}"),
         }
@@ -74,6 +80,11 @@ impl From<Instr> for u16 {
                     | (((rs2 as u16) & 0b11) << 2)
                     | ((rs1 as u16) & 0b11);
 
+                opcode | params
+            }
+            Instr::Ldr(rd, addr) => {
+                let opcode = 5_u16 << 12;
+                let params = (((rd as u16) & 0b11) << 8) | (addr as u16);
                 opcode | params
             }
         }
@@ -128,6 +139,7 @@ impl<'a> CPU<'a> {
             Instr::Sub(rd, rs1, rs2) => {
                 self.reg[rd] = self.reg[rs1].wrapping_sub(self.reg[rs2]);
             }
+            Instr::Ldr(rd, addr) => self.reg[rd] = self.mem[addr as usize],
         }
     }
 }
@@ -161,7 +173,7 @@ impl<const SIZE: usize> Memory<SIZE> {
 }
 
 fn main() {
-    let mut mem = Memory::<1024>::new();
+    let mut mem = Memory::<256>::new();
     let prog = vec![
         Instr::Mov(0, 0b11),
         Instr::Mov(1, 0b01),
@@ -170,9 +182,12 @@ fn main() {
         Instr::Add(0, 1, 2),
         Instr::Sub(1, 0, 0),
         Instr::Sub(1, 1, 2),
+        Instr::Ldr(3, 255),
     ];
 
     mem.load_program(prog);
+    mem.data[255] = 55;
+
     let mut cpu = CPU::new(&mem.data);
     cpu.tick(10);
 }
