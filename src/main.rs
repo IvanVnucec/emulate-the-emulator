@@ -123,7 +123,7 @@ impl<'a> CPU<'a> {
             }
             Instr::Mov(rd, val) => self.reg[rd] = val,
             Instr::Add(rd, rs1, rs2) => {
-                self.reg[rd] = self.reg[rs1] + self.reg[rs2];
+                self.reg[rd] = self.reg[rs1].wrapping_add(self.reg[rs2]);
             }
             Instr::Sub(rd, rs1, rs2) => {
                 self.reg[rd] = self.reg[rs1].wrapping_sub(self.reg[rs2]);
