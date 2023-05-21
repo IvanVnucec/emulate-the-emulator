@@ -9,6 +9,7 @@ enum Instr {
     Add(usize, usize, usize),
     Sub(usize, usize, usize),
     Ldr(usize, u8),
+    Str(usize, u8),
 }
 
 impl From<u16> for Instr {
@@ -44,6 +45,11 @@ impl From<u16> for Instr {
                 let rd = ((params >> 8) & 0b11) as usize;
                 let addr = params as u8;
                 Instr::Ldr(rd, addr)
+            }
+            6 => {
+                let rd = ((params >> 8) & 0b11) as usize;
+                let addr = params as u8;
+                Instr::Str(rd, addr)
             }
             _ => panic!("Unknown opcode: {opcode}"),
         }
@@ -87,20 +93,25 @@ impl From<Instr> for u16 {
                 let params = (((rd as u16) & 0b11) << 8) | (addr as u16);
                 opcode | params
             }
+            Instr::Str(rd, addr) => {
+                let opcode = 6_u16 << 12;
+                let params = (((rd as u16) & 0b11) << 8) | (addr as u16);
+                opcode | params
+            }
         }
     }
 }
 
 #[derive(Debug)]
 struct CPU<'a> {
-    mem: &'a [u8],
+    mem: &'a mut [u8],
     pc: u16,
     ir: u16,
     reg: [u8; 4],
 }
 
 impl<'a> CPU<'a> {
-    fn new(mem: &'a [u8]) -> Self {
+    fn new(mem: &'a mut [u8]) -> Self {
         Self {
             mem: mem,
             pc: 0,
@@ -140,6 +151,7 @@ impl<'a> CPU<'a> {
                 self.reg[rd] = self.reg[rs1].wrapping_sub(self.reg[rs2]);
             }
             Instr::Ldr(rd, addr) => self.reg[rd] = self.mem[addr as usize],
+            Instr::Str(rd, addr) => self.mem[addr as usize] = self.reg[rd],
         }
     }
 }
@@ -183,11 +195,14 @@ fn main() {
         Instr::Sub(1, 0, 0),
         Instr::Sub(1, 1, 2),
         Instr::Ldr(3, 255),
+        Instr::Add(3, 3, 2),
+        Instr::Str(3, 255),
     ];
 
     mem.load_program(prog);
     mem.data[255] = 55;
 
-    let mut cpu = CPU::new(&mem.data);
+    let mut cpu = CPU::new(&mut mem.data);
     cpu.tick(10);
+    println!("mem: {:?}", mem.data);
 }
