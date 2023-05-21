@@ -105,7 +105,6 @@ impl From<Instr> for u16 {
 #[derive(Debug)]
 struct CPU<'a> {
     mem: &'a mut [u8],
-    pc: u16,
     ir: u16,
     reg: [u8; 4],
 }
@@ -114,7 +113,6 @@ impl<'a> CPU<'a> {
     fn new(mem: &'a mut [u8]) -> Self {
         Self {
             mem: mem,
-            pc: 0,
             ir: 0,
             reg: [0; 4],
         }
@@ -131,9 +129,9 @@ impl<'a> CPU<'a> {
     }
 
     fn fetch(&mut self) {
-        self.ir =
-            ((self.mem[self.pc as usize + 1] as u16) << 8) | (self.mem[self.pc as usize] as u16);
-        self.pc += 2;
+        self.ir = ((self.mem[self.reg[3] as usize + 1] as u16) << 8)
+            | (self.mem[self.reg[3] as usize] as u16);
+        self.reg[3] += 2;
     }
 
     fn execute(&mut self, instr: Instr) {
@@ -158,11 +156,7 @@ impl<'a> CPU<'a> {
 
 impl<'a> fmt::Display for CPU<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "pc: {:>5?}, ir: 0x{:0>4X?}, regs: {:>3?}",
-            self.pc, self.ir, self.reg
-        )
+        write!(f, "ir: 0x{:0>4X?}, regs: {:>3?}", self.ir, self.reg)
     }
 }
 
