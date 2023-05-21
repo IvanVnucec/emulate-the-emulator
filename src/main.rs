@@ -6,6 +6,7 @@ use std::fmt;
 enum Instr {
     And(usize, usize, usize),
     Mov(usize, u8),
+    Add(usize, usize, usize),
 }
 
 impl From<u16> for Instr {
@@ -24,6 +25,12 @@ impl From<u16> for Instr {
                 let rd = ((params >> 8) & 0b11) as usize;
                 let val = params as u8;
                 Instr::Mov(rd, val)
+            }
+            3 => {
+                let rs1 = (params & 0b11) as usize;
+                let rs2 = ((params >> 2) & 0b11) as usize;
+                let rd = ((params >> 4) & 0b11) as usize;
+                Instr::Add(rd, rs1, rs2)
             }
             _ => panic!("Unknown opcode: {opcode}"),
         }
@@ -44,6 +51,14 @@ impl From<Instr> for u16 {
             Instr::Mov(rd, val) => {
                 let opcode = 2_u16 << 12;
                 let params = (((rd as u16) & 0b11) << 8) | (val as u16);
+                opcode | params
+            }
+            Instr::Add(rd, rs1, rs2) => {
+                let opcode = 3_u16 << 12;
+                let params = (((rd as u16) & 0b11) << 4)
+                    | (((rs2 as u16) & 0b11) << 2)
+                    | ((rs1 as u16) & 0b11);
+
                 opcode | params
             }
         }
@@ -92,6 +107,9 @@ impl<'a> CPU<'a> {
                 self.reg[rd] = self.reg[rs1] & self.reg[rs2];
             }
             Instr::Mov(rd, val) => self.reg[rd] = val,
+            Instr::Add(rd, rs1, rs2) => {
+                self.reg[rd] = self.reg[rs1] + self.reg[rs2];
+            }
         }
     }
 }
@@ -131,6 +149,7 @@ fn main() {
         Instr::Mov(1, 0b01),
         Instr::And(0, 1, 0),
         Instr::And(2, 0, 0),
+        Instr::Add(0, 1, 2),
     ];
 
     mem.load_program(prog);
