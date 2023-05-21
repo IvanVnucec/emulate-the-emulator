@@ -7,6 +7,7 @@ enum Instr {
     And(usize, usize, usize),
     Mov(usize, u8),
     Add(usize, usize, usize),
+    Sub(usize, usize, usize),
 }
 
 impl From<u16> for Instr {
@@ -32,6 +33,12 @@ impl From<u16> for Instr {
                 let rd = ((params >> 4) & 0b11) as usize;
                 Instr::Add(rd, rs1, rs2)
             }
+            4 => {
+                let rs1 = (params & 0b11) as usize;
+                let rs2 = ((params >> 2) & 0b11) as usize;
+                let rd = ((params >> 4) & 0b11) as usize;
+                Instr::Sub(rd, rs1, rs2)
+            }
             _ => panic!("Unknown opcode: {opcode}"),
         }
     }
@@ -55,6 +62,14 @@ impl From<Instr> for u16 {
             }
             Instr::Add(rd, rs1, rs2) => {
                 let opcode = 3_u16 << 12;
+                let params = (((rd as u16) & 0b11) << 4)
+                    | (((rs2 as u16) & 0b11) << 2)
+                    | ((rs1 as u16) & 0b11);
+
+                opcode | params
+            }
+            Instr::Sub(rd, rs1, rs2) => {
+                let opcode = 4_u16 << 12;
                 let params = (((rd as u16) & 0b11) << 4)
                     | (((rs2 as u16) & 0b11) << 2)
                     | ((rs1 as u16) & 0b11);
@@ -110,6 +125,9 @@ impl<'a> CPU<'a> {
             Instr::Add(rd, rs1, rs2) => {
                 self.reg[rd] = self.reg[rs1] + self.reg[rs2];
             }
+            Instr::Sub(rd, rs1, rs2) => {
+                self.reg[rd] = self.reg[rs1].wrapping_sub(self.reg[rs2]);
+            }
         }
     }
 }
@@ -150,6 +168,8 @@ fn main() {
         Instr::And(0, 1, 0),
         Instr::And(2, 0, 0),
         Instr::Add(0, 1, 2),
+        Instr::Sub(1, 0, 0),
+        Instr::Sub(1, 1, 2),
     ];
 
     mem.load_program(prog);
